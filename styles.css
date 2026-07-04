@@ -1,0 +1,66 @@
+.canele-log-modal .canele-ingredient-row {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.canele-log-modal .canele-ingredient-row input[type="text"] {
+	flex: 2;
+}
+
+.canele-log-modal .canele-ingredient-row input[type="number"] {
+	flex: 1;
+}
+
+.canele-log-modal .canele-star-rating {
+	display: flex;
+	gap: 4px;
+	font-size: 1.4em;
+	cursor: pointer;
+}
+
+.canele-log-modal .canele-star {
+	opacity: 0.3;
+}
+
+.canele-log-modal .canele-star.is-active {
+	opacity: 1;
+}
+
+.canele-log-list .canele-trial-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+	padding: 6px 4px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.canele-log-list .canele-trial-row .canele-trial-title {
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.canele-log-list .canele-trial-actions {
+	display: flex;
+	gap: 4px;
+}
+
+.canele-log-list .canele-filter-bar {
+	display: flex;
+	gap: 6px;
+	padding: 6px 4px;
+	flex-wrap: wrap;
+}
+
+.canele-compare-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.canele-compare-table th,
+.canele-compare-table td {
+	border: 1px solid var(--background-modifier-border);
+	padding: 4px 8px;
+	vertical-align: top;
+}

@@ -1,0 +1,9 @@
+{
+	"id": "canele-log",
+	"name": "Canele Log",
+	"version": "0.1.0",
+	"minAppVersion": "1.4.0",
+	"description": "カヌレの試作を記録・比較するプラグイン",
+	"author": "nigirimesi0141",
+	"isDesktopOnly": false
+}
