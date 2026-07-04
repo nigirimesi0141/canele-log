@@ -16,17 +16,17 @@ export default class CaneleLogPlugin extends Plugin {
 
 		this.registerView(VIEW_TYPE_TRIAL_LIST, (leaf) => new TrialListView(leaf, this));
 
-		this.addRibbonIcon("cake", "カヌレ試作を記録", () => this.openCreateTrialModal());
+		this.addRibbonIcon("chef-hat", "料理を記録", () => this.openCreateTrialModal());
 
 		this.addCommand({
 			id: "canele-log-new-trial",
-			name: "新しい試作を記録",
+			name: "新しい記録を作成",
 			callback: () => this.openCreateTrialModal(),
 		});
 
 		this.addCommand({
 			id: "canele-log-open-list",
-			name: "試作一覧を開く",
+			name: "料理ログ一覧を開く",
 			callback: () => this.activateListView(),
 		});
 
@@ -57,24 +57,46 @@ export default class CaneleLogPlugin extends Plugin {
 		this.app.workspace.revealLeaf(leaf);
 	}
 
+	private async collectCategories(): Promise<string[]> {
+		const used = await this.store.collectAllCategories();
+		return Array.from(new Set([...this.settings.categories, ...used]))
+			.filter((c) => c)
+			.sort();
+	}
+
 	async openCreateTrialModal(): Promise<void> {
 		const allTags = await this.store.collectAllTags();
-		new TrialModal(this.app, defaultFrontmatter(), "", null, allTags, (result) =>
-			this.handleModalSubmit(result, null)
+		const allCategories = await this.collectCategories();
+		new TrialModal(
+			this.app,
+			defaultFrontmatter(this.settings.defaultCategory),
+			"",
+			null,
+			allTags,
+			allCategories,
+			(result) => this.handleModalSubmit(result, null)
 		).open();
 	}
 
 	async openEditTrialModal(record: TrialRecord, file: TFile): Promise<void> {
 		const allTags = await this.store.collectAllTags();
-		new TrialModal(this.app, record.frontmatter, record.body, file, allTags, (result) =>
-			this.handleModalSubmit(result, file)
+		const allCategories = await this.collectCategories();
+		new TrialModal(
+			this.app,
+			record.frontmatter,
+			record.body,
+			file,
+			allTags,
+			allCategories,
+			(result) => this.handleModalSubmit(result, file)
 		).open();
 	}
 
 	async openDuplicateTrialModal(record: TrialRecord): Promise<void> {
 		const draft = await this.store.duplicateTrial(record);
 		const allTags = await this.store.collectAllTags();
-		new TrialModal(this.app, draft, "", null, allTags, (result) =>
+		const allCategories = await this.collectCategories();
+		new TrialModal(this.app, draft, "", null, allTags, allCategories, (result) =>
 			this.handleModalSubmit(result, null)
 		).open();
 	}

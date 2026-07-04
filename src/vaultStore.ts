@@ -1,6 +1,5 @@
 import { App, TFile, TFolder, normalizePath } from "obsidian";
 import {
-	BASE_TAG,
 	BakeStep,
 	CaneleLogSettings,
 	Ingredient,
@@ -60,6 +59,7 @@ export class VaultStore {
 			id: fm.id,
 			title: fm.title ?? file.basename,
 			date: fm.date ?? "",
+			category: typeof fm.category === "string" ? fm.category : "",
 			rating: fm.rating ?? 0,
 			based_on: fm.based_on ?? null,
 			steps: readSteps(fm),
@@ -81,6 +81,15 @@ export class VaultStore {
 			for (const tag of t.frontmatter.tags) tags.add(tag);
 		}
 		return Array.from(tags).sort();
+	}
+
+	async collectAllCategories(): Promise<string[]> {
+		const trials = await this.listTrials();
+		const categories = new Set<string>();
+		for (const t of trials) {
+			if (t.frontmatter.category) categories.add(t.frontmatter.category);
+		}
+		return Array.from(categories).sort();
 	}
 
 	async createTrial(
@@ -121,6 +130,7 @@ export class VaultStore {
 		return {
 			...next,
 			title: `${source.frontmatter.title} (複製)`,
+			category: source.frontmatter.category,
 			based_on: source.frontmatter.id,
 			steps: source.frontmatter.steps.map((s: BakeStep) => ({ ...s })),
 			ingredients: source.frontmatter.ingredients.map((i: Ingredient) => ({ ...i })),
@@ -143,6 +153,7 @@ export class VaultStore {
 			fm.id = frontmatter.id;
 			fm.title = frontmatter.title;
 			fm.date = frontmatter.date;
+			fm.category = frontmatter.category;
 			fm.rating = frontmatter.rating;
 			fm.based_on = frontmatter.based_on;
 			fm.steps = frontmatter.steps;
@@ -150,7 +161,7 @@ export class VaultStore {
 			delete fm.bake_time_min;
 			fm.ingredients = frontmatter.ingredients;
 			fm.photos = frontmatter.photos;
-			fm.tags = Array.from(new Set([BASE_TAG, ...frontmatter.tags]));
+			fm.tags = Array.from(new Set(frontmatter.tags));
 		});
 	}
 }

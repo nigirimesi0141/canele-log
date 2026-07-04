@@ -18,8 +18,9 @@ export class CompareModal extends Modal {
 		}
 
 		this.addRow(table, "日付", (t) => t.frontmatter.date);
+		this.addRow(table, "カテゴリ", (t) => t.frontmatter.category || "-");
 		this.addRow(table, "評価", (t) => "★".repeat(t.frontmatter.rating));
-		this.addRow(table, "焼成工程", (t) =>
+		this.addRow(table, "調理工程", (t) =>
 			t.frontmatter.steps.length
 				? t.frontmatter.steps.map((s, i) => `${i + 1}. ${formatStep(s)}`).join("\n")
 				: "-"

@@ -8,6 +8,7 @@ type SortKey = "date-desc" | "date-asc" | "rating-desc" | "rating-asc";
 
 export class TrialListView extends ItemView {
 	private records: TrialRecord[] = [];
+	private categoryFilter = "";
 	private tagFilter = "";
 	private sortKey: SortKey = "date-desc";
 	private selected = new Set<string>();
@@ -21,7 +22,7 @@ export class TrialListView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "カヌレ試作一覧";
+		return "料理ログ";
 	}
 
 	getIcon(): string {
@@ -44,6 +45,9 @@ export class TrialListView extends ItemView {
 
 	private visibleRecords(): TrialRecord[] {
 		let list = this.records;
+		if (this.categoryFilter) {
+			list = list.filter((r) => r.frontmatter.category === this.categoryFilter);
+		}
 		if (this.tagFilter) {
 			list = list.filter((r) => r.frontmatter.tags.includes(this.tagFilter));
 		}
@@ -71,11 +75,24 @@ export class TrialListView extends ItemView {
 		container.addClass("canele-log-list");
 
 		const header = container.createDiv();
-		header.createEl("h4", { text: "カヌレ試作一覧" });
+		header.createEl("h4", { text: "料理ログ" });
 		const newBtn = header.createEl("button", { text: "＋ 新規記録" });
 		newBtn.onclick = () => this.plugin.openCreateTrialModal();
 
 		const filterBar = container.createDiv({ cls: "canele-filter-bar" });
+
+		const categorySelect = filterBar.createEl("select");
+		categorySelect.createEl("option", { text: "すべてのカテゴリ", value: "" });
+		const allCategories = Array.from(
+			new Set(this.records.map((r) => r.frontmatter.category).filter((c) => c))
+		).sort();
+		for (const cat of allCategories) categorySelect.createEl("option", { text: cat, value: cat });
+		categorySelect.value = this.categoryFilter;
+		categorySelect.onchange = () => {
+			this.categoryFilter = categorySelect.value;
+			this.render();
+		};
+
 		const tagSelect = filterBar.createEl("select");
 		tagSelect.createEl("option", { text: "すべてのタグ", value: "" });
 		const allTags = Array.from(new Set(this.records.flatMap((r) => r.frontmatter.tags))).sort();
@@ -127,7 +144,13 @@ export class TrialListView extends ItemView {
 				if (file) this.app.workspace.getLeaf(false).openFile(file);
 			};
 			info.createDiv({
-				text: `${record.frontmatter.date} / ${record.frontmatter.tags.join(", ")}`,
+				text: [
+					record.frontmatter.date,
+					record.frontmatter.category,
+					record.frontmatter.tags.join(", "),
+				]
+					.filter((s) => s)
+					.join(" / "),
 			});
 
 			const actions = row.createDiv({ cls: "canele-trial-actions" });

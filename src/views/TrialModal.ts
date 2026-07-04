@@ -23,6 +23,7 @@ export class TrialModal extends Modal {
 		private initialBody: string,
 		private existingFile: TFile | null,
 		private allTags: string[],
+		private allCategories: string[],
 		private onSubmit: (result: TrialModalResult) => void
 	) {
 		super(app);
@@ -52,12 +53,24 @@ export class TrialModal extends Modal {
 			text.setValue(this.frontmatter.date).onChange((v) => (this.frontmatter.date = v));
 		});
 
+		new Setting(contentEl)
+			.setName("カテゴリ")
+			.setDesc("料理の種類（例: カヌレ、カレー）")
+			.addText((text) => {
+				text.setValue(this.frontmatter.category);
+				text.onChange((v) => (this.frontmatter.category = v.trim()));
+				const listId = "canele-category-suggestions";
+				text.inputEl.setAttr("list", listId);
+				const datalist = contentEl.createEl("datalist", { attr: { id: listId } });
+				for (const c of this.allCategories) datalist.createEl("option", { value: c });
+			});
+
 		this.renderRating(contentEl);
 
-		contentEl.createEl("h3", { text: "焼成工程" });
+		contentEl.createEl("h3", { text: "調理工程" });
 		contentEl.createEl("p", {
 			cls: "canele-step-hint",
-			text: "手順ごとに温度と時間を入力できます（例: 250℃で10分 → 200℃で50分）。",
+			text: "手順ごとに温度・時間を入力できます（温度/時間は任意。例: 250℃で10分 → 200℃で50分、煮込み100℃で30分 など）。",
 		});
 		this.stepsListEl = contentEl.createDiv();
 		this.renderSteps();

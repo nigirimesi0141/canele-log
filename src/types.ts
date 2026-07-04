@@ -14,6 +14,7 @@ export interface TrialFrontmatter {
 	id: string;
 	title: string;
 	date: string;
+	category: string;
 	rating: number;
 	based_on: string | null;
 	steps: BakeStep[];
@@ -31,14 +32,16 @@ export interface TrialRecord {
 export interface CaneleLogSettings {
 	trialsFolder: string;
 	attachmentsFolder: string;
+	categories: string[];
+	defaultCategory: string;
 }
 
 export const DEFAULT_SETTINGS: CaneleLogSettings = {
-	trialsFolder: "Canele",
-	attachmentsFolder: "Canele/attachments",
+	trialsFolder: "Recipes",
+	attachmentsFolder: "Recipes/attachments",
+	categories: [],
+	defaultCategory: "",
 };
-
-export const BASE_TAG = "canele";
 
 export function emptyIngredient(): Ingredient {
 	return { name: "", amount: 0, unit: "g" };
@@ -48,18 +51,19 @@ export function emptyStep(): BakeStep {
 	return { label: "", temp_c: null, time_min: null };
 }
 
-export function defaultFrontmatter(): TrialFrontmatter {
+export function defaultFrontmatter(category = ""): TrialFrontmatter {
 	const now = new Date();
 	return {
 		id: formatId(now),
 		title: "",
 		date: formatDate(now),
+		category,
 		rating: 3,
 		based_on: null,
 		steps: [emptyStep()],
 		ingredients: [emptyIngredient()],
 		photos: [],
-		tags: [BASE_TAG],
+		tags: [],
 	};
 }
 
