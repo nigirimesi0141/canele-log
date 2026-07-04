@@ -1,5 +1,5 @@
 import { App, Modal, Setting, TFile } from "obsidian";
-import { Ingredient, TrialFrontmatter, emptyIngredient } from "../types";
+import { BakeStep, Ingredient, TrialFrontmatter, emptyIngredient, emptyStep } from "../types";
 
 export interface TrialModalResult {
 	frontmatter: TrialFrontmatter;
@@ -14,6 +14,7 @@ export class TrialModal extends Modal {
 	private newPhotos: File[] = [];
 	private removedPhotoPaths: string[] = [];
 	private ingredientsListEl!: HTMLElement;
+	private stepsListEl!: HTMLElement;
 	private tagsInput!: HTMLInputElement;
 
 	constructor(
@@ -27,6 +28,7 @@ export class TrialModal extends Modal {
 		super(app);
 		this.frontmatter = {
 			...initialFrontmatter,
+			steps: initialFrontmatter.steps.map((s) => ({ ...s })),
 			ingredients: initialFrontmatter.ingredients.map((i) => ({ ...i })),
 			photos: [...initialFrontmatter.photos],
 			tags: [...initialFrontmatter.tags],
@@ -52,21 +54,19 @@ export class TrialModal extends Modal {
 
 		this.renderRating(contentEl);
 
-		new Setting(contentEl)
-			.setName("焼成温度 (℃)")
-			.addText((text) => {
-				text.inputEl.type = "number";
-				text.setValue(String(this.frontmatter.bake_temp_c ?? ""));
-				text.onChange((v) => (this.frontmatter.bake_temp_c = v ? Number(v) : null));
-			});
-
-		new Setting(contentEl)
-			.setName("焼成時間 (分)")
-			.addText((text) => {
-				text.inputEl.type = "number";
-				text.setValue(String(this.frontmatter.bake_time_min ?? ""));
-				text.onChange((v) => (this.frontmatter.bake_time_min = v ? Number(v) : null));
-			});
+		contentEl.createEl("h3", { text: "焼成工程" });
+		contentEl.createEl("p", {
+			cls: "canele-step-hint",
+			text: "手順ごとに温度と時間を入力できます（例: 250℃で10分 → 200℃で50分）。",
+		});
+		this.stepsListEl = contentEl.createDiv();
+		this.renderSteps();
+		new Setting(contentEl).addButton((btn) =>
+			btn.setButtonText("+ 工程を追加").onClick(() => {
+				this.frontmatter.steps.push(emptyStep());
+				this.renderSteps();
+			})
+		);
 
 		contentEl.createEl("h3", { text: "材料配合" });
 		this.ingredientsListEl = contentEl.createDiv();
@@ -166,6 +166,34 @@ export class TrialModal extends Modal {
 			removeBtn.onclick = () => {
 				this.frontmatter.ingredients.splice(idx, 1);
 				this.renderIngredients();
+			};
+		});
+	}
+
+	private renderSteps() {
+		this.stepsListEl.empty();
+		this.frontmatter.steps.forEach((step: BakeStep, idx: number) => {
+			const row = this.stepsListEl.createDiv({ cls: "canele-step-row" });
+			row.createSpan({ cls: "canele-step-index", text: `${idx + 1}.` });
+
+			const labelInput = row.createEl("input", { type: "text", placeholder: "手順（例: 予熱後に投入）" });
+			labelInput.value = step.label;
+			labelInput.onchange = () => (step.label = labelInput.value);
+
+			const tempInput = row.createEl("input", { type: "number", placeholder: "温度℃" });
+			tempInput.value = step.temp_c != null ? String(step.temp_c) : "";
+			tempInput.style.flex = "0.5";
+			tempInput.onchange = () => (step.temp_c = tempInput.value ? Number(tempInput.value) : null);
+
+			const timeInput = row.createEl("input", { type: "number", placeholder: "分" });
+			timeInput.value = step.time_min != null ? String(step.time_min) : "";
+			timeInput.style.flex = "0.5";
+			timeInput.onchange = () => (step.time_min = timeInput.value ? Number(timeInput.value) : null);
+
+			const removeBtn = row.createEl("button", { text: "×" });
+			removeBtn.onclick = () => {
+				this.frontmatter.steps.splice(idx, 1);
+				this.renderSteps();
 			};
 		});
 	}

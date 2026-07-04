@@ -12,6 +12,33 @@
 	flex: 1;
 }
 
+.canele-log-modal .canele-step-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.canele-log-modal .canele-step-row .canele-step-index {
+	flex: 0 0 auto;
+	opacity: 0.6;
+	min-width: 1.4em;
+}
+
+.canele-log-modal .canele-step-row input[type="text"] {
+	flex: 2;
+}
+
+.canele-log-modal .canele-step-row input[type="number"] {
+	flex: 1;
+}
+
+.canele-log-modal .canele-step-hint {
+	margin: 2px 0 8px;
+	font-size: 0.85em;
+	opacity: 0.7;
+}
+
 .canele-log-modal .canele-star-rating {
 	display: flex;
 	gap: 4px;

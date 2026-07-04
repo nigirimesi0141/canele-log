@@ -1,6 +1,7 @@
 import { App, TFile, TFolder, normalizePath } from "obsidian";
 import {
 	BASE_TAG,
+	BakeStep,
 	CaneleLogSettings,
 	Ingredient,
 	TrialFrontmatter,
@@ -61,8 +62,7 @@ export class VaultStore {
 			date: fm.date ?? "",
 			rating: fm.rating ?? 0,
 			based_on: fm.based_on ?? null,
-			bake_temp_c: fm.bake_temp_c ?? null,
-			bake_time_min: fm.bake_time_min ?? null,
+			steps: readSteps(fm),
 			ingredients: Array.isArray(fm.ingredients) ? fm.ingredients : [],
 			photos: Array.isArray(fm.photos) ? fm.photos : [],
 			tags: Array.isArray(fm.tags) ? fm.tags : [],
@@ -122,8 +122,7 @@ export class VaultStore {
 			...next,
 			title: `${source.frontmatter.title} (複製)`,
 			based_on: source.frontmatter.id,
-			bake_temp_c: source.frontmatter.bake_temp_c,
-			bake_time_min: source.frontmatter.bake_time_min,
+			steps: source.frontmatter.steps.map((s: BakeStep) => ({ ...s })),
 			ingredients: source.frontmatter.ingredients.map((i: Ingredient) => ({ ...i })),
 			tags: [...source.frontmatter.tags],
 			photos: [],
@@ -146,13 +145,36 @@ export class VaultStore {
 			fm.date = frontmatter.date;
 			fm.rating = frontmatter.rating;
 			fm.based_on = frontmatter.based_on;
-			fm.bake_temp_c = frontmatter.bake_temp_c;
-			fm.bake_time_min = frontmatter.bake_time_min;
+			fm.steps = frontmatter.steps;
+			delete fm.bake_temp_c;
+			delete fm.bake_time_min;
 			fm.ingredients = frontmatter.ingredients;
 			fm.photos = frontmatter.photos;
 			fm.tags = Array.from(new Set([BASE_TAG, ...frontmatter.tags]));
 		});
 	}
+}
+
+function readSteps(fm: Record<string, unknown>): BakeStep[] {
+	const toNum = (v: unknown): number | null =>
+		v === null || v === undefined || v === "" ? null : Number(v);
+
+	if (Array.isArray(fm.steps)) {
+		return fm.steps.map((s: Record<string, unknown>) => ({
+			label: typeof s?.label === "string" ? s.label : "",
+			temp_c: toNum(s?.temp_c),
+			time_min: toNum(s?.time_min),
+		}));
+	}
+
+	// 旧フォーマット（単一の焼成温度/時間）を1工程へ移行
+	const legacyTemp = toNum(fm.bake_temp_c);
+	const legacyTime = toNum(fm.bake_time_min);
+	if (legacyTemp !== null || legacyTime !== null) {
+		return [{ label: "", temp_c: legacyTemp, time_min: legacyTime }];
+	}
+
+	return [];
 }
 
 function extractFrontmatterBlock(content: string): string {
