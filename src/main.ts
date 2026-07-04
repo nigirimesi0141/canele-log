@@ -5,6 +5,7 @@ import { VaultStore } from "./vaultStore";
 import { TrialListView, VIEW_TYPE_TRIAL_LIST } from "./views/TrialListView";
 import { TrialModal, TrialModalResult } from "./views/TrialModal";
 import { CompareModal } from "./views/CompareModal";
+import { ExtractedRecipe, extractRecipeFromImage } from "./recipeExtractor";
 
 export default class CaneleLogPlugin extends Plugin {
 	settings: CaneleLogSettings = DEFAULT_SETTINGS;
@@ -64,6 +65,17 @@ export default class CaneleLogPlugin extends Plugin {
 			.sort();
 	}
 
+	// APIキーが設定されているときだけ画像読み取り関数を返す（未設定なら機能を隠す）
+	private buildExtractImage(): ((file: File) => Promise<ExtractedRecipe>) | null {
+		const key = this.settings.anthropicApiKey?.trim();
+		if (!key) return null;
+		const model = this.settings.visionModel || DEFAULT_SETTINGS.visionModel;
+		return async (file: File) => {
+			const categories = await this.collectCategories();
+			return extractRecipeFromImage(key, model, file, categories);
+		};
+	}
+
 	async openCreateTrialModal(): Promise<void> {
 		const allTags = await this.store.collectAllTags();
 		const allCategories = await this.collectCategories();
@@ -74,6 +86,7 @@ export default class CaneleLogPlugin extends Plugin {
 			null,
 			allTags,
 			allCategories,
+			this.buildExtractImage(),
 			(result) => this.handleModalSubmit(result, null)
 		).open();
 	}
@@ -88,6 +101,7 @@ export default class CaneleLogPlugin extends Plugin {
 			file,
 			allTags,
 			allCategories,
+			this.buildExtractImage(),
 			(result) => this.handleModalSubmit(result, file)
 		).open();
 	}
@@ -96,7 +110,7 @@ export default class CaneleLogPlugin extends Plugin {
 		const draft = await this.store.duplicateTrial(record);
 		const allTags = await this.store.collectAllTags();
 		const allCategories = await this.collectCategories();
-		new TrialModal(this.app, draft, "", null, allTags, allCategories, (result) =>
+		new TrialModal(this.app, draft, "", null, allTags, allCategories, this.buildExtractImage(), (result) =>
 			this.handleModalSubmit(result, null)
 		).open();
 	}

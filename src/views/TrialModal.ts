@@ -1,5 +1,6 @@
-import { App, Modal, Setting, TFile } from "obsidian";
+import { App, Modal, Notice, Setting, TFile } from "obsidian";
 import { BakeStep, Ingredient, TrialFrontmatter, emptyIngredient, emptyStep } from "../types";
+import { ExtractedRecipe } from "../recipeExtractor";
 
 export interface TrialModalResult {
 	frontmatter: TrialFrontmatter;
@@ -16,6 +17,9 @@ export class TrialModal extends Modal {
 	private ingredientsListEl!: HTMLElement;
 	private stepsListEl!: HTMLElement;
 	private tagsInput!: HTMLInputElement;
+	private titleInput!: HTMLInputElement;
+	private categoryInput!: HTMLInputElement;
+	private bodyArea!: HTMLTextAreaElement;
 
 	constructor(
 		app: App,
@@ -24,6 +28,7 @@ export class TrialModal extends Modal {
 		private existingFile: TFile | null,
 		private allTags: string[],
 		private allCategories: string[],
+		private extractImage: ((file: File) => Promise<ExtractedRecipe>) | null,
 		private onSubmit: (result: TrialModalResult) => void
 	) {
 		super(app);
@@ -44,9 +49,12 @@ export class TrialModal extends Modal {
 			text: this.existingFile ? "試作記録を編集" : "新しい試作を記録",
 		});
 
-		new Setting(contentEl).setName("タイトル").addText((text) =>
-			text.setValue(this.frontmatter.title).onChange((v) => (this.frontmatter.title = v))
-		);
+		if (this.extractImage) this.renderImageImport(contentEl);
+
+		new Setting(contentEl).setName("タイトル").addText((text) => {
+			this.titleInput = text.inputEl;
+			text.setValue(this.frontmatter.title).onChange((v) => (this.frontmatter.title = v));
+		});
 
 		new Setting(contentEl).setName("日付").addText((text) => {
 			text.inputEl.type = "date";
@@ -57,6 +65,7 @@ export class TrialModal extends Modal {
 			.setName("カテゴリ")
 			.setDesc("料理の種類（例: カヌレ、カレー）")
 			.addText((text) => {
+				this.categoryInput = text.inputEl;
 				text.setValue(this.frontmatter.category);
 				text.onChange((v) => (this.frontmatter.category = v.trim()));
 				const listId = "canele-category-suggestions";
@@ -130,6 +139,7 @@ export class TrialModal extends Modal {
 
 		contentEl.createEl("h3", { text: "メモ" });
 		const bodyArea = contentEl.createEl("textarea");
+		this.bodyArea = bodyArea;
 		bodyArea.rows = 6;
 		bodyArea.style.width = "100%";
 		bodyArea.value = this.body;
@@ -141,6 +151,57 @@ export class TrialModal extends Modal {
 				.setCta()
 				.onClick(() => this.handleSubmit())
 		);
+	}
+
+	private renderImageImport(container: HTMLElement) {
+		const setting = new Setting(container)
+			.setName("📷 画像から入力")
+			.setDesc("レシピ写真を選ぶと、材料・工程などを自動入力し、写真にも追加します");
+		const input = createEl("input", { type: "file" });
+		input.accept = "image/*";
+		input.onchange = async () => {
+			const file = input.files?.[0];
+			input.value = "";
+			if (!file || !this.extractImage) return;
+
+			// 入力画像は写真欄にも保存する
+			this.newPhotos.push(file);
+
+			const notice = new Notice("画像を読み取っています…", 0);
+			try {
+				const recipe = await this.extractImage(file);
+				this.applyExtraction(recipe);
+				new Notice("読み取り完了。内容を確認して保存してください");
+			} catch (e) {
+				new Notice(`読み取りに失敗しました: ${e instanceof Error ? e.message : e}`);
+			} finally {
+				notice.hide();
+			}
+		};
+		setting.controlEl.appendChild(input);
+	}
+
+	private applyExtraction(recipe: ExtractedRecipe) {
+		if (recipe.title) {
+			this.frontmatter.title = recipe.title;
+			this.titleInput.value = recipe.title;
+		}
+		if (recipe.category) {
+			this.frontmatter.category = recipe.category;
+			this.categoryInput.value = recipe.category;
+		}
+		if (recipe.ingredients.length) {
+			this.frontmatter.ingredients = recipe.ingredients;
+			this.renderIngredients();
+		}
+		if (recipe.steps.length) {
+			this.frontmatter.steps = recipe.steps;
+			this.renderSteps();
+		}
+		if (recipe.body) {
+			this.body = recipe.body;
+			this.bodyArea.value = recipe.body;
+		}
 	}
 
 	private renderRating(container: HTMLElement) {

@@ -34,6 +34,8 @@ export interface CaneleLogSettings {
 	attachmentsFolder: string;
 	categories: string[];
 	defaultCategory: string;
+	anthropicApiKey: string;
+	visionModel: string;
 }
 
 export const DEFAULT_SETTINGS: CaneleLogSettings = {
@@ -41,6 +43,8 @@ export const DEFAULT_SETTINGS: CaneleLogSettings = {
 	attachmentsFolder: "Recipes/attachments",
 	categories: [],
 	defaultCategory: "",
+	anthropicApiKey: "",
+	visionModel: "claude-haiku-4-5",
 };
 
 export function emptyIngredient(): Ingredient {

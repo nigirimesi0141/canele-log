@@ -67,5 +67,42 @@ export class CaneleLogSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		containerEl.createEl("h3", { text: "画像からの読み取り（任意）" });
+		containerEl.createEl("p", {
+			cls: "canele-settings-note",
+			text:
+				"レシピ写真から材料・工程などを自動入力する機能です。Anthropic の API キーを設定すると有効になります。" +
+				"キーは Vault 内（.obsidian）に平文保存され、Vault を同期していると他端末にも同期されます。用途を限定した専用キーの利用を推奨します。",
+		});
+
+		new Setting(containerEl)
+			.setName("Anthropic API キー")
+			.setDesc("空欄にすると画像読み取り機能は無効になります")
+			.addText((text) => {
+				text.inputEl.type = "password";
+				text
+					.setPlaceholder("sk-ant-...")
+					.setValue(this.plugin.settings.anthropicApiKey)
+					.onChange(async (value) => {
+						this.plugin.settings.anthropicApiKey = value.trim();
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("読み取りモデル")
+			.setDesc("安いHaiku / バランスのSonnet / 高精度のOpus から選択")
+			.addDropdown((drop) =>
+				drop
+					.addOption("claude-haiku-4-5", "Haiku 4.5（安い・推奨）")
+					.addOption("claude-sonnet-5", "Sonnet 5（バランス）")
+					.addOption("claude-opus-4-8", "Opus 4.8（高精度）")
+					.setValue(this.plugin.settings.visionModel)
+					.onChange(async (value) => {
+						this.plugin.settings.visionModel = value;
+						await this.plugin.saveSettings();
+					})
+			);
 	}
 }

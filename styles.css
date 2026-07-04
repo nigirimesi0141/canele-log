@@ -80,6 +80,12 @@
 	flex-wrap: wrap;
 }
 
+.canele-settings-note {
+	font-size: 0.85em;
+	opacity: 0.75;
+	margin: 4px 0 10px;
+}
+
 .canele-compare-table {
 	width: 100%;
 	border-collapse: collapse;
