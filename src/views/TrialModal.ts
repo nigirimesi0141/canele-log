@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Setting, TFile } from "obsidian";
+import { App, Modal, Notice, Setting, TFile, normalizePath } from "obsidian";
 import { BakeStep, Ingredient, TrialFrontmatter, emptyIngredient, emptyStep } from "../types";
 import { ExtractedRecipe } from "../recipeExtractor";
 
@@ -16,6 +16,8 @@ export class TrialModal extends Modal {
 	private removedPhotoPaths: string[] = [];
 	private ingredientsListEl!: HTMLElement;
 	private stepsListEl!: HTMLElement;
+	private photosListEl!: HTMLElement;
+	private objectUrls: string[] = [];
 	private tagsInput!: HTMLInputElement;
 	private titleInput!: HTMLInputElement;
 	private categoryInput!: HTMLInputElement;
@@ -114,25 +116,15 @@ export class TrialModal extends Modal {
 		});
 
 		contentEl.createEl("h3", { text: "写真" });
-		if (this.frontmatter.photos.length) {
-			const existingList = contentEl.createDiv();
-			for (const photoPath of [...this.frontmatter.photos]) {
-				const row = existingList.createDiv({ cls: "canele-ingredient-row" });
-				row.createSpan({ text: photoPath });
-				const removeBtn = row.createEl("button", { text: "削除" });
-				removeBtn.onclick = () => {
-					this.frontmatter.photos = this.frontmatter.photos.filter((p) => p !== photoPath);
-					this.removedPhotoPaths.push(photoPath);
-					row.remove();
-				};
-			}
-		}
+		this.photosListEl = contentEl.createDiv();
+		this.renderPhotos();
 		new Setting(contentEl).setName("写真を追加").addButton((btn) => {
 			const input = createEl("input", { type: "file" });
 			input.accept = "image/*";
 			input.multiple = true;
 			input.onchange = () => {
 				if (input.files) this.newPhotos.push(...Array.from(input.files));
+				this.renderPhotos();
 			};
 			btn.buttonEl.replaceWith(input);
 		});
@@ -164,8 +156,9 @@ export class TrialModal extends Modal {
 			input.value = "";
 			if (!file || !this.extractImage) return;
 
-			// 入力画像は写真欄にも保存する
+			// 入力画像は写真欄にも保存する（読み取り前にサムネイル表示）
 			this.newPhotos.push(file);
+			this.renderPhotos();
 
 			const notice = new Notice("画像を読み取っています…", 0);
 			try {
@@ -272,6 +265,44 @@ export class TrialModal extends Modal {
 		});
 	}
 
+	private renderPhotos() {
+		this.photosListEl.empty();
+
+		// 保存済みの写真（サムネイル表示。クリックで拡大表示）
+		for (const photoPath of [...this.frontmatter.photos]) {
+			const item = this.photosListEl.createDiv({ cls: "canele-photo-item" });
+			const file = this.app.vault.getAbstractFileByPath(normalizePath(photoPath));
+			if (file instanceof TFile) {
+				const img = item.createEl("img", { cls: "canele-photo-thumb" });
+				img.src = this.app.vault.getResourcePath(file);
+				img.onclick = () => this.app.workspace.getLeaf(true).openFile(file);
+			} else {
+				item.createSpan({ text: photoPath });
+			}
+			const removeBtn = item.createEl("button", { text: "削除" });
+			removeBtn.onclick = () => {
+				this.frontmatter.photos = this.frontmatter.photos.filter((p) => p !== photoPath);
+				this.removedPhotoPaths.push(photoPath);
+				this.renderPhotos();
+			};
+		}
+
+		// 追加したばかりの未保存の写真（読み取り元画像もここに出る）
+		this.newPhotos.forEach((file, idx) => {
+			const item = this.photosListEl.createDiv({ cls: "canele-photo-item" });
+			const url = URL.createObjectURL(file);
+			this.objectUrls.push(url);
+			const img = item.createEl("img", { cls: "canele-photo-thumb" });
+			img.src = url;
+			item.createSpan({ cls: "canele-photo-new", text: "（未保存）" });
+			const removeBtn = item.createEl("button", { text: "削除" });
+			removeBtn.onclick = () => {
+				this.newPhotos.splice(idx, 1);
+				this.renderPhotos();
+			};
+		});
+	}
+
 	private handleSubmit() {
 		const tags = this.tagsInput.value
 			.split(",")
@@ -288,6 +319,8 @@ export class TrialModal extends Modal {
 	}
 
 	onClose(): void {
+		for (const url of this.objectUrls) URL.revokeObjectURL(url);
+		this.objectUrls = [];
 		this.contentEl.empty();
 	}
 }
