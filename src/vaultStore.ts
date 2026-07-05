@@ -100,11 +100,23 @@ export class VaultStore {
 		body: string
 	): Promise<TFile> {
 		await this.ensureFolders();
-		const path = normalizePath(`${this.trialsFolder}/${frontmatter.id}.md`);
+		const path = this.uniqueNotePath(noteFileName(frontmatter));
 		const initialContent = `---\n---\n\n${buildNoteBody(frontmatter, body)}`;
 		const file = await this.app.vault.create(path, initialContent);
 		await this.writeFrontmatter(file, frontmatter);
 		return file;
+	}
+
+	// 保存先フォルダ内で重複しないノートパスを返す（exclude はリネーム時に自分自身を除外）
+	private uniqueNotePath(base: string, exclude?: TFile): string {
+		let candidate = normalizePath(`${this.trialsFolder}/${base}.md`);
+		let n = 2;
+		while (true) {
+			const existing = this.app.vault.getAbstractFileByPath(candidate);
+			if (!existing || existing === exclude) return candidate;
+			candidate = normalizePath(`${this.trialsFolder}/${base} ${n}.md`);
+			n++;
+		}
 	}
 
 	async updateTrial(
@@ -116,6 +128,13 @@ export class VaultStore {
 		const fmBlock = extractFrontmatterBlock(content);
 		await this.app.vault.modify(file, `${fmBlock}\n\n${buildNoteBody(frontmatter, body)}`);
 		await this.writeFrontmatter(file, frontmatter);
+
+		// タイトルが変わったらファイル名も追従してリネーム
+		const desiredBase = noteFileName(frontmatter);
+		if (file.basename !== desiredBase) {
+			const newPath = this.uniqueNotePath(desiredBase, file);
+			await this.app.fileManager.renameFile(file, newPath);
+		}
 	}
 
 	async deleteTrial(file: TFile, record: TrialRecord): Promise<void> {
@@ -198,6 +217,23 @@ function extractFrontmatterBlock(content: string): string {
 
 function stripFrontmatter(content: string): string {
 	return content.replace(/^---\n[\s\S]*?\n---\n?/, "").trimStart();
+}
+
+// レシピのタイトルからノートのファイル名（拡張子なし）を決める。空や不正ならidにフォールバック
+function noteFileName(fm: TrialFrontmatter): string {
+	const base = sanitizeFileName(fm.title);
+	return base || fm.id;
+}
+
+function sanitizeFileName(name: string): string {
+	return (name || "")
+		.replace(/[\\/:*?"<>|#^[\]]/g, " ") // ファイル名/リンクに使えない文字を除去
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/^\.+/, "") // 先頭のドットを除去（隠しファイル化を防ぐ）
+		.trim()
+		.slice(0, 100)
+		.trim();
 }
 
 // ノート本文から、ユーザーの自由メモ部分だけを取り出す（自動生成ブロックを除く）
