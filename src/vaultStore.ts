@@ -218,6 +218,12 @@ function buildNoteBody(fm: TrialFrontmatter, memo: string): string {
 function renderSummary(fm: TrialFrontmatter): string {
 	const lines: string[] = [];
 
+	if (fm.photos.length) {
+		lines.push("## 写真", "");
+		for (const p of fm.photos) lines.push(`![[${p}|400]]`);
+		lines.push("");
+	}
+
 	if (fm.ingredients.length) {
 		lines.push("## 材料", "", "| 材料 | 分量 |", "| --- | --- |");
 		for (const ing of fm.ingredients) {
