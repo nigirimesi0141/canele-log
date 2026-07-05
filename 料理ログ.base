@@ -1,0 +1,39 @@
+filters:
+  and:
+    - file.inFolder("Recipes")
+    - 'file.ext == "md"'
+properties:
+  file.name:
+    displayName: レシピ
+  note.category:
+    displayName: カテゴリ
+  note.rating:
+    displayName: 評価
+  note.date:
+    displayName: 日付
+  note.tags:
+    displayName: タグ
+  note.cover:
+    displayName: 写真
+views:
+  - type: table
+    name: 一覧（テーブル）
+    order:
+      - file.name
+      - note.category
+      - note.rating
+      - note.date
+      - note.tags
+    sort:
+      - property: note.date
+        direction: DESC
+  - type: cards
+    name: ギャラリー
+    image: note.cover
+    order:
+      - note.category
+      - note.rating
+      - note.date
+    sort:
+      - property: note.rating
+        direction: DESC

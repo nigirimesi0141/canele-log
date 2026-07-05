@@ -184,6 +184,9 @@ export class VaultStore {
 			fm.ingredients = frontmatter.ingredients;
 			fm.photos = frontmatter.photos;
 			fm.tags = Array.from(new Set(frontmatter.tags));
+			// Bases のカードビューのカバー画像用に先頭写真をウィキリンクで保持
+			if (frontmatter.photos.length) fm.cover = `[[${frontmatter.photos[0]}]]`;
+			else delete fm.cover;
 		});
 	}
 }
