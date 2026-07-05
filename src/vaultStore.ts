@@ -10,6 +10,9 @@ import {
 } from "./types";
 
 const DEFAULT_BODY = "## メモ\n\n";
+// 材料・工程は記録データから本文に自動生成する。この区切りより下がユーザーの自由メモ。
+const AUTO_START = "%% canele-log:auto-start %%";
+const AUTO_END = "%% canele-log:auto-end %%";
 
 export class VaultStore {
 	constructor(private app: App, private getSettings: () => CaneleLogSettings) {}
@@ -69,7 +72,7 @@ export class VaultStore {
 		};
 
 		const content = await this.app.vault.read(file);
-		const body = stripFrontmatter(content);
+		const body = extractMemo(stripFrontmatter(content));
 
 		return { frontmatter, body, path: file.path };
 	}
@@ -98,7 +101,7 @@ export class VaultStore {
 	): Promise<TFile> {
 		await this.ensureFolders();
 		const path = normalizePath(`${this.trialsFolder}/${frontmatter.id}.md`);
-		const initialContent = `---\n---\n\n${body || DEFAULT_BODY}`;
+		const initialContent = `---\n---\n\n${buildNoteBody(frontmatter, body)}`;
 		const file = await this.app.vault.create(path, initialContent);
 		await this.writeFrontmatter(file, frontmatter);
 		return file;
@@ -111,7 +114,7 @@ export class VaultStore {
 	): Promise<void> {
 		const content = await this.app.vault.read(file);
 		const fmBlock = extractFrontmatterBlock(content);
-		await this.app.vault.modify(file, `${fmBlock}\n${body}`);
+		await this.app.vault.modify(file, `${fmBlock}\n\n${buildNoteBody(frontmatter, body)}`);
 		await this.writeFrontmatter(file, frontmatter);
 	}
 
@@ -195,6 +198,56 @@ function extractFrontmatterBlock(content: string): string {
 
 function stripFrontmatter(content: string): string {
 	return content.replace(/^---\n[\s\S]*?\n---\n?/, "").trimStart();
+}
+
+// ノート本文から、ユーザーの自由メモ部分だけを取り出す（自動生成ブロックを除く）
+function extractMemo(body: string): string {
+	const endIdx = body.indexOf(AUTO_END);
+	if (endIdx === -1) return body.trim();
+	return body.slice(endIdx + AUTO_END.length).trim();
+}
+
+// ノート本文 = 材料/工程の自動生成ブロック + ユーザーの自由メモ
+function buildNoteBody(fm: TrialFrontmatter, memo: string): string {
+	const memoText = memo && memo.trim() ? memo.trim() : DEFAULT_BODY.trim();
+	const summary = renderSummary(fm);
+	if (!summary) return `${memoText}\n`;
+	return `${AUTO_START}\n${summary}\n${AUTO_END}\n\n${memoText}\n`;
+}
+
+function renderSummary(fm: TrialFrontmatter): string {
+	const lines: string[] = [];
+
+	if (fm.ingredients.length) {
+		lines.push("## 材料", "", "| 材料 | 分量 |", "| --- | --- |");
+		for (const ing of fm.ingredients) {
+			lines.push(`| ${ing.name || ""} | ${formatAmount(ing)} |`);
+		}
+		lines.push("");
+	}
+
+	if (fm.steps.length) {
+		lines.push("## 調理工程", "");
+		fm.steps.forEach((s, i) => lines.push(`${i + 1}. ${formatStepLine(s)}`));
+		lines.push("");
+	}
+
+	return lines.join("\n").trim();
+}
+
+function formatAmount(ing: Ingredient): string {
+	const amt = ing.amount ? String(ing.amount) : "";
+	const text = `${amt}${ing.unit ?? ""}`.trim();
+	return text || "-";
+}
+
+function formatStepLine(step: BakeStep): string {
+	const parts: string[] = [];
+	if (step.temp_c != null) parts.push(`${step.temp_c}℃`);
+	if (step.time_min != null) parts.push(`${step.time_min}分`);
+	const cond = parts.join(" / ");
+	if (step.label && cond) return `${step.label}（${cond}）`;
+	return step.label || cond || "-";
 }
 
 export function newTrialId(): string {
