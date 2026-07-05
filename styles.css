@@ -1,11 +1,19 @@
 .canele-log-modal .canele-ingredient-row {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 6px;
 	margin-bottom: 6px;
 }
 
+/* 入力欄が縮みすぎて値が見切れないよう最小幅を確保 */
+.canele-log-modal .canele-ingredient-row input,
+.canele-log-modal .canele-step-row input {
+	min-width: 4em;
+}
+
 .canele-log-modal .canele-ingredient-row input[type="text"] {
 	flex: 2;
+	min-width: 7em;
 }
 
 .canele-log-modal .canele-ingredient-row input[type="number"] {
@@ -14,6 +22,7 @@
 
 .canele-log-modal .canele-step-row {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: 6px;
 	margin-bottom: 6px;
@@ -27,6 +36,7 @@
 
 .canele-log-modal .canele-step-row input[type="text"] {
 	flex: 2;
+	min-width: 8em;
 }
 
 .canele-log-modal .canele-step-row input[type="number"] {
