@@ -268,8 +268,8 @@ export class TrialModal extends Modal {
 	private renderPhotos() {
 		this.photosListEl.empty();
 
-		// 保存済みの写真（サムネイル表示。クリックで拡大表示）
-		for (const photoPath of [...this.frontmatter.photos]) {
+		// 保存済みの写真（サムネイル表示。先頭がカバー画像）
+		this.frontmatter.photos.forEach((photoPath, idx) => {
 			const item = this.photosListEl.createDiv({ cls: "canele-photo-item" });
 			const file = this.app.vault.getAbstractFileByPath(normalizePath(photoPath));
 			if (file instanceof TFile) {
@@ -279,13 +279,23 @@ export class TrialModal extends Modal {
 			} else {
 				item.createSpan({ text: photoPath });
 			}
+			if (idx === 0) {
+				item.createSpan({ cls: "canele-photo-cover-badge", text: "カバー" });
+			} else {
+				const coverBtn = item.createEl("button", { text: "カバーにする" });
+				coverBtn.onclick = () => {
+					this.frontmatter.photos.splice(idx, 1);
+					this.frontmatter.photos.unshift(photoPath);
+					this.renderPhotos();
+				};
+			}
 			const removeBtn = item.createEl("button", { text: "削除" });
 			removeBtn.onclick = () => {
 				this.frontmatter.photos = this.frontmatter.photos.filter((p) => p !== photoPath);
 				this.removedPhotoPaths.push(photoPath);
 				this.renderPhotos();
 			};
-		}
+		});
 
 		// 追加したばかりの未保存の写真（読み取り元画像もここに出る）
 		this.newPhotos.forEach((file, idx) => {

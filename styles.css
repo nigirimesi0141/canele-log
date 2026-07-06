@@ -111,6 +111,14 @@
 	opacity: 0.6;
 }
 
+.canele-log-modal .canele-photo-cover-badge {
+	font-size: 0.75em;
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
 .canele-settings-note {
 	font-size: 0.85em;
 	opacity: 0.75;

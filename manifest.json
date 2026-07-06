@@ -1,7 +1,7 @@
 {
 	"id": "canele-log",
 	"name": "料理ログ (Canele Log)",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"minAppVersion": "1.4.0",
 	"description": "料理の試作をカテゴリ別に記録・比較するプラグイン（カヌレなどの焼き菓子から煮込み料理まで）",
 	"author": "nigirimesi0141",

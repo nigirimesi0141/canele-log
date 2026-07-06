@@ -1,6 +1,6 @@
 {
 	"name": "canele-log",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "料理の試作をカテゴリ別に記録・比較するObsidianプラグイン",
 	"main": "main.js",
 	"scripts": {
